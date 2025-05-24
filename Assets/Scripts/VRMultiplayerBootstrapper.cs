@@ -1,6 +1,7 @@
 using UnityEngine;
 using VRMultiplayer.Network;
 using VRMultiplayer.UI;
+using VRMultiplayer.AI;
 using ReadyPlayerMe.Core;
 
 namespace VRMultiplayer
@@ -21,6 +22,7 @@ namespace VRMultiplayer
         [SerializeField] private VRConnectionManager connectionManager;
         [SerializeField] private VRMenuManager menuManager;
         [SerializeField] private GameObject vrOrigin;
+        [SerializeField] private NetworkConvAICharacter aiCharacter;
         
         [Header("Performance Settings")]
         [SerializeField] private int targetFrameRate = 90; // VR target framerate
@@ -71,6 +73,9 @@ namespace VRMultiplayer
             
             // Initialize UI
             InitializeUI();
+            
+            // Initialize ConvAI
+            InitializeConvAI();
             
             // Setup Ready Player Me
             SetupReadyPlayerMe();
@@ -225,6 +230,24 @@ namespace VRMultiplayer
             else
             {
                 Debug.LogWarning("VRMenuManager not found - UI will not be available");
+            }
+        }
+        
+        private void InitializeConvAI()
+        {
+            // Find ConvAI character
+            if (aiCharacter == null)
+            {
+                aiCharacter = FindObjectOfType<NetworkConvAICharacter>();
+            }
+            
+            if (aiCharacter != null)
+            {
+                Debug.Log("ConvAI system initialized");
+            }
+            else
+            {
+                Debug.LogWarning("ConvAI character not found - AI features will not be available");
             }
         }
         

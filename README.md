@@ -64,13 +64,19 @@ Install these packages via Unity Package Manager:
 2. Get your Application ID from RPM Studio
 3. Configure in **Ready Player Me > Settings**
 
-### 4. Scene Setup
+### 4. ConvAI Setup (Optional)
+1. Create ConvAI account at [convai.com](https://convai.com)
+2. Create AI character and get API Key + Character ID
+3. Configure in ConvAIManager component
+4. See `ConvAI_Integration_Guide.md` for detailed setup
+
+### 5. Scene Setup
 1. Create new scene named "VRMultiplayerScene"
 2. Add the provided prefabs and scripts
 3. Configure XR Origin with interaction setup
 4. Set up network spawn points
 
-### 5. Build Settings
+### 6. Build Settings
 1. Add scenes to build settings
 2. Set platform to **Android** for Quest builds
 3. Configure player settings for VR
@@ -83,16 +89,21 @@ Assets/
 │   ├── Network/
 │   │   ├── NetworkVRPlayer.cs
 │   │   ├── VRConnectionManager.cs
-│   │   └── NetworkAvatarManager.cs
+│   │   └── VRInputProvider.cs
 │   ├── Avatar/
 │   │   ├── VRAvatarController.cs
-│   │   ├── RPMAvatarLoader.cs
-│   │   └── VRIKSetup.cs
+│   │   ├── VRIKSetup.cs
+│   │   └── AvatarAnimationHelper.cs
 │   ├── VR/
 │   │   ├── VRHandController.cs
 │   │   └── VRLocomotion.cs
+│   ├── AI/
+│   │   ├── ConvAIManager.cs
+│   │   ├── NetworkConvAICharacter.cs
+│   │   └── VRConvAIVoiceHandler.cs
 │   └── UI/
-│       └── VRMenuManager.cs
+│       ├── VRMenuManager.cs
+│       └── VRConvAIUI.cs
 ├── Prefabs/
 │   ├── NetworkVRPlayer.prefab
 │   ├── VRAvatar.prefab
@@ -106,6 +117,7 @@ Assets/
 - **VR Body Tracking**: Full body representation in VR using Final IK
 - **Avatar Customization**: Ready Player Me avatar integration
 - **Hand Tracking**: Natural hand movements and interactions
+- **Conversational AI**: ConvAI integration for interactive AI characters
 - **Voice Spatial Audio**: 3D positional voice chat
 - **Cross-Platform**: Support for various VR headsets
 
