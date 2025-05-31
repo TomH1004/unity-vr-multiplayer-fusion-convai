@@ -103,7 +103,11 @@ namespace VRMultiplayer.Avatar
         
         private void InitializeAnimationParameters()
         {
-            if (animator == null) return;
+            if (animator == null || animator.runtimeAnimatorController == null) 
+            {
+                Debug.LogWarning("Avatar has no AnimatorController assigned - animation parameters will not work");
+                return;
+            }
             
             // Initialize animation parameters to default values
             animator.SetInteger(PARAM_LEFT_HAND_POSE, (int)HandGesture.Open);
@@ -123,7 +127,8 @@ namespace VRMultiplayer.Avatar
         
         private void UpdateHandGestures()
         {
-            if (!enableHandGestures) return;
+            if (!enableHandGestures || animator == null || animator.runtimeAnimatorController == null) 
+                return;
             
             // Analyze left hand input for gestures
             HandGesture newLeftGesture = AnalyzeHandGesture(true);
@@ -171,7 +176,8 @@ namespace VRMultiplayer.Avatar
         
         private void UpdateFacialExpressions()
         {
-            if (!enableFacialExpressions || animator == null) return;
+            if (!enableFacialExpressions || animator == null || animator.runtimeAnimatorController == null) 
+                return;
             
             // Simple expression logic - could be enhanced with voice analysis, etc.
             FacialExpression targetExpression = DetermineFacialExpression();
@@ -235,7 +241,8 @@ namespace VRMultiplayer.Avatar
         
         private void UpdateBlinking()
         {
-            if (!enableBlinking || faceMeshRenderer == null) return;
+            if (!enableBlinking || faceMeshRenderer == null || animator == null || animator.runtimeAnimatorController == null) 
+                return;
             
             float timeSinceLastBlink = Time.time - lastBlinkTime;
             

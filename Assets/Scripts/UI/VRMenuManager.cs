@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using VRMultiplayer.Network;
 using VRMultiplayer.Avatar;
 using TMPro;
+using System.Collections;
 
 namespace VRMultiplayer.UI
 {
@@ -47,9 +48,9 @@ namespace VRMultiplayer.UI
         
         [Header("Avatar URLs")]
         [SerializeField] private string[] defaultAvatarUrls = {
-            "https://models.readyplayer.me/64bfa8f1b8a9b6f1c8f5d9e3.glb",
-            "https://models.readyplayer.me/64bfa8f1b8a9b6f1c8f5d9e4.glb",
-            "https://models.readyplayer.me/64bfa8f1b8a9b6f1c8f5d9e5.glb"
+            "https://models.readyplayer.me/6409cc49c2e68b002fbbbd4e.glb", // Simple test avatar 1
+            "https://models.readyplayer.me/638df693d72bffc6fa17943c.glb", // Simple test avatar 2  
+            "https://models.readyplayer.me/638df34ad72bffc6fa17943a.glb"  // Simple test avatar 3
         };
         
         // Components
@@ -76,7 +77,7 @@ namespace VRMultiplayer.UI
             connectionManager = FindObjectOfType<VRConnectionManager>();
             if (connectionManager == null)
             {
-                Debug.LogError("VRConnectionManager not found in scene!");
+                Debug.LogError("[VRMenuManager] VRConnectionManager not found in scene!");
             }
             
             // Set default values
@@ -217,8 +218,15 @@ namespace VRMultiplayer.UI
                 return;
             }
             
+            if (connectionManager == null)
+            {
+                Debug.LogError("[VRMenuManager] Connection manager is null, cannot create room!");
+                UpdateStatusText("Error: Connection manager not found");
+                return;
+            }
+            
             UpdateStatusText("Creating room...");
-            connectionManager?.CreateRoom(roomName);
+            connectionManager.CreateRoom(roomName);
         }
         
         private void OnConfirmJoinRoom()
@@ -230,8 +238,15 @@ namespace VRMultiplayer.UI
                 return;
             }
             
+            if (connectionManager == null)
+            {
+                Debug.LogError("[VRMenuManager] Connection manager is null, cannot join room!");
+                UpdateStatusText("Error: Connection manager not found");
+                return;
+            }
+            
             UpdateStatusText("Joining room...");
-            connectionManager?.JoinRoom(roomName);
+            connectionManager.JoinRoom(roomName);
         }
         
         private void OnBackToMainMenu()
@@ -245,7 +260,8 @@ namespace VRMultiplayer.UI
             string avatarUrl = avatarUrlInput != null ? avatarUrlInput.text : "";
             if (string.IsNullOrEmpty(avatarUrl))
             {
-                Debug.LogWarning("Please enter an avatar URL");
+                Debug.LogWarning("[VRMenuManager] Please enter an avatar URL");
+                UpdateStatusText("Please enter an avatar URL");
                 return;
             }
             
@@ -267,10 +283,22 @@ namespace VRMultiplayer.UI
                 
                 LoadSelectedAvatar();
             }
+            else
+            {
+                Debug.LogError("[VRMenuManager] No default avatar URLs configured!");
+                UpdateStatusText("Error: No default avatars available");
+            }
         }
         
         private void LoadSelectedAvatar()
         {
+            if (string.IsNullOrEmpty(selectedAvatarUrl))
+            {
+                Debug.LogWarning("[VRMenuManager] No avatar URL selected");
+                UpdateStatusText("No avatar URL selected");
+                return;
+            }
+            
             if (avatarController == null)
             {
                 // Find local player's avatar controller
@@ -283,12 +311,76 @@ namespace VRMultiplayer.UI
             
             if (avatarController != null)
             {
-                avatarController.LoadAvatar(selectedAvatarUrl);
-                Debug.Log($"Loading avatar: {selectedAvatarUrl}");
+                // Check if the avatar controller is properly initialized
+                if (avatarController.IsInitialized)
+                {
+                    try
+                    {
+                        avatarController.LoadAvatar(selectedAvatarUrl);
+                        UpdateStatusText("Loading avatar...");
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogError($"[VRMenuManager] Avatar loading failed: {e.Message}");
+                        UpdateStatusText("Avatar loading failed");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("[VRMenuManager] Avatar controller not ready yet. Retrying...");
+                    UpdateStatusText("Avatar controller not ready, retrying...");
+                    StartCoroutine(RetryLoadAvatar());
+                }
             }
             else
             {
-                Debug.LogWarning("Avatar controller not found");
+                Debug.LogWarning("[VRMenuManager] Avatar controller not found. Make sure you're connected to a room and a player is spawned.");
+                UpdateStatusText("Please wait for player to spawn...");
+                // Try again after a short delay
+                StartCoroutine(RetryLoadAvatar());
+            }
+        }
+        
+        private System.Collections.IEnumerator RetryLoadAvatar()
+        {
+            yield return new WaitForSeconds(2f); // Increased delay to ensure player is fully spawned
+            
+            // Try to find the avatar controller again
+            localPlayer = FindLocalPlayer();
+            if (localPlayer != null)
+            {
+                avatarController = localPlayer.GetComponent<VRAvatarController>();
+                if (avatarController != null)
+                {
+                    if (avatarController.IsInitialized)
+                    {
+                        try
+                        {
+                            avatarController.LoadAvatar(selectedAvatarUrl);
+                            UpdateStatusText("Loading avatar...");
+                        }
+                        catch (System.Exception e)
+                        {
+                            Debug.LogError($"[VRMenuManager] Avatar loading failed on retry: {e.Message}");
+                            UpdateStatusText("Avatar loading failed - please try again");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[VRMenuManager] Avatar controller still not initialized after delay");
+                        UpdateStatusText("Avatar controller not ready - please try again");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("[VRMenuManager] Still no avatar controller found after retry");
+                    UpdateStatusText("Avatar controller not found - check setup");
+                }
+            }
+            else
+            {
+                Debug.LogError("[VRMenuManager] Still no local player found after retry");
+                UpdateStatusText("Player not found - check connection");
             }
         }
         
@@ -302,10 +394,15 @@ namespace VRMultiplayer.UI
         {
             // Configure haptic feedback settings
             var handControllers = FindObjectsOfType<VRMultiplayer.VR.VRHandController>();
+            if (handControllers.Length == 0)
+            {
+                Debug.LogWarning("[VRMenuManager] No VR hand controllers found for haptic configuration");
+                return;
+            }
+            
             foreach (var controller in handControllers)
             {
                 // Would need to add haptic enable/disable method to VRHandController
-                Debug.Log($"Haptic feedback {(enabled ? "enabled" : "disabled")}");
             }
         }
         
@@ -316,6 +413,10 @@ namespace VRMultiplayer.UI
             if (locomotion != null)
             {
                 locomotion.SetTeleportationEnabled(enabled);
+            }
+            else
+            {
+                Debug.LogWarning("[VRMenuManager] VR Locomotion component not found for teleport configuration");
             }
         }
         
@@ -339,19 +440,34 @@ namespace VRMultiplayer.UI
             {
                 statusText.text = message;
             }
-            Debug.Log($"Status: {message}");
         }
         
         private NetworkVRPlayer FindLocalPlayer()
         {
+            var connectionManager = FindObjectOfType<VRConnectionManager>();
+            if (connectionManager?.Runner == null) 
+            {
+                Debug.LogWarning("[VRMenuManager] Connection manager or runner is null when trying to find local player");
+                return null;
+            }
+            
             var players = FindObjectsOfType<NetworkVRPlayer>();
             foreach (var player in players)
             {
-                if (player.Object != null && player.Object.HasInputAuthority)
+                if (player.Object != null)
                 {
-                    return player;
+                    // In Shared Mode, check both InputAuthority and OwnerPlayer
+                    bool isLocalPlayer = (player.Object.InputAuthority == connectionManager.Runner.LocalPlayer) ||
+                                       (player.OwnerPlayer == connectionManager.Runner.LocalPlayer);
+                    
+                    if (isLocalPlayer)
+                    {
+                        return player;
+                    }
                 }
             }
+            
+            Debug.LogWarning("[VRMenuManager] Could not find local player");
             return null;
         }
         

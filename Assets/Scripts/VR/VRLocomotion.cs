@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.XR;
-using UnityEngine.XR.Interaction.Toolkit;
+using Unity.XR.CoreUtils;
 using VRMultiplayer.Network;
+
 
 namespace VRMultiplayer.VR
 {
@@ -20,7 +21,7 @@ namespace VRMultiplayer.VR
         
         [Header("Teleportation")]
         [SerializeField] private bool enableTeleportation = true;
-        [SerializeField] private TeleportationProvider teleportationProvider;
+        [SerializeField] private UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationProvider teleportationProvider;
         [SerializeField] private LineRenderer teleportLine;
         [SerializeField] private GameObject teleportReticle;
         [SerializeField] private LayerMask teleportLayerMask = 1;
@@ -102,11 +103,11 @@ namespace VRMultiplayer.VR
             // Setup Teleportation Provider
             if (teleportationProvider == null)
             {
-                teleportationProvider = FindObjectOfType<TeleportationProvider>();
+                teleportationProvider = FindObjectOfType<UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationProvider>();
                 if (teleportationProvider == null)
                 {
                     var teleportProviderObj = new GameObject("TeleportationProvider");
-                    teleportationProvider = teleportProviderObj.AddComponent<TeleportationProvider>();
+                    teleportationProvider = teleportProviderObj.AddComponent<UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationProvider>();
                 }
             }
             
@@ -126,7 +127,7 @@ namespace VRMultiplayer.VR
                 
                 // Configure line renderer
                 teleportLine.material = new Material(Shader.Find("Sprites/Default"));
-                teleportLine.color = Color.blue;
+                teleportLine.material.color = Color.blue;
                 teleportLine.startWidth = 0.02f;
                 teleportLine.endWidth = 0.02f;
                 teleportLine.positionCount = 0;
@@ -169,6 +170,10 @@ namespace VRMultiplayer.VR
         
         private void UpdateInputDevices()
         {
+            // Only search for input devices for the local player
+            if (networkPlayer == null || !networkPlayer.Object || !networkPlayer.Object.HasInputAuthority)
+                return;
+            
             // Find left controller
             if (!leftControllerFound)
             {
@@ -196,6 +201,10 @@ namespace VRMultiplayer.VR
         
         private void UpdateMovementInput()
         {
+            // Only gather input for the local player
+            if (networkPlayer == null || !networkPlayer.Object || !networkPlayer.Object.HasInputAuthority)
+                return;
+            
             // Get movement input from left controller
             if (leftControllerFound)
             {
@@ -227,6 +236,10 @@ namespace VRMultiplayer.VR
         private void UpdateTeleportation()
         {
             if (!enableTeleportation) return;
+            
+            // Only handle teleportation for the local player
+            if (networkPlayer == null || !networkPlayer.Object || !networkPlayer.Object.HasInputAuthority)
+                return;
             
             // Handle teleport button press
             if (teleportButtonPressed && !lastTeleportButtonState)
@@ -325,7 +338,7 @@ namespace VRMultiplayer.VR
             }
             
             // Change color based on validity
-            teleportLine.color = validTeleportDestination ? Color.green : Color.red;
+            teleportLine.material.color = validTeleportDestination ? Color.green : Color.red;
         }
         
         private void EndTeleportation()
@@ -357,7 +370,7 @@ namespace VRMultiplayer.VR
         {
             if (teleportationProvider != null)
             {
-                var teleportRequest = new TeleportRequest()
+                var teleportRequest = new UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportRequest()
                 {
                     destinationPosition = teleportDestination,
                     destinationRotation = transform.rotation
@@ -376,7 +389,9 @@ namespace VRMultiplayer.VR
         
         public void ProcessMovementInput(Vector2 move, Vector2 turn)
         {
-            if (networkPlayer == null || !networkPlayer.Object.HasInputAuthority) return;
+            // Only process movement for players who have input authority
+            if (networkPlayer == null || !networkPlayer.Object || !networkPlayer.Object.HasInputAuthority) 
+                return;
             
             // Handle smooth movement
             if (enableSmoothMovement && move.magnitude > 0.1f)

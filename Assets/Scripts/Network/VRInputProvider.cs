@@ -1,6 +1,8 @@
 using Fusion;
 using UnityEngine;
 using VRMultiplayer.VR;
+using VRMultiplayer.Network;
+using static VRMultiplayer.Network.ButtonState;
 
 namespace VRMultiplayer.Network
 {
@@ -144,19 +146,19 @@ namespace VRMultiplayer.Network
                 // Left hand buttons could be used for different functions
                 // For now, we'll use them for teleportation and menu
                 currentInputData.teleportButton = leftHandController.GetButtonState(VRButton.Primary) ? 
-                    ButtonState.Pressed : ButtonState.Released;
+                    Pressed : Released;
             }
             
             if (rightHandController != null)
             {
                 // Right hand buttons
                 currentInputData.menuButton = rightHandController.GetButtonState(VRButton.Menu) ? 
-                    ButtonState.Pressed : ButtonState.Released;
+                    Pressed : Released;
             }
         }
         
         // INetworkInput implementation
-        public void OnInput(NetworkRunner runner, NetworkInputData input)
+        public void OnInput(NetworkRunner runner, NetworkInput input)
         {
             if (networkPlayer == null) return;
             
@@ -200,7 +202,7 @@ namespace VRMultiplayer.Network
         
         public void SetButtonState(VRInputButton button, bool pressed)
         {
-            ButtonState state = pressed ? ButtonState.Pressed : ButtonState.Released;
+            ButtonState state = pressed ? Pressed : Released;
             
             switch (button)
             {

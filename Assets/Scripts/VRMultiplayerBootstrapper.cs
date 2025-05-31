@@ -256,10 +256,13 @@ namespace VRMultiplayer
             // Configure Ready Player Me settings
             var avatarConfig = new AvatarConfig
             {
-                UseEyeAnimations = true,
-                UseEyeBones = true,
-                UseDracoMeshCompression = true,
-                UseAvatarCaching = true
+                UseDracoCompression = true,
+                Pose = ReadyPlayerMe.Core.Pose.APose,
+                UseMeshOptCompression = false // Can enable if meshopt package is installed
+                // UseEyeAnimations = true, // Deprecated - use morph targets instead
+                // UseEyeBones = true, // Deprecated - use morph targets instead
+                // UseAvatarCaching = true // Caching is handled differently in newer SDK
+                // MeshLod = Lod.High, // Property doesn't exist in current SDK
             };
             
             Debug.Log("Ready Player Me configured");

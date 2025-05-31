@@ -361,7 +361,7 @@ namespace VRMultiplayer.AI
                 {
                     voiceBeam.SetPosition(0, handController.transform.position);
                     voiceBeam.SetPosition(1, aiCharacter.transform.position);
-                    voiceBeam.color = isRecording ? recordingColor : idleColor;
+                    voiceBeam.material.color = isRecording ? recordingColor : idleColor;
                 }
             }
         }
@@ -416,6 +416,22 @@ namespace VRMultiplayer.AI
             {
                 StartCoroutine(TestMicrophoneCoroutine());
             }
+        }
+        
+        /// <summary>
+        /// Manually start voice recording (public interface for UI)
+        /// </summary>
+        public void StartRecording()
+        {
+            StartVoiceRecording();
+        }
+        
+        /// <summary>
+        /// Manually stop voice recording (public interface for UI)
+        /// </summary>
+        public void StopRecording()
+        {
+            StopVoiceRecording();
         }
         
         private System.Collections.IEnumerator TestMicrophoneCoroutine()

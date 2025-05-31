@@ -47,9 +47,8 @@ namespace VRMultiplayer.VR
         private float triggerValue = 0f;
         
         // XR Interaction components
-        private XRDirectInteractor directInteractor;
-        private XRRayInteractor rayInteractor;
-        private XRController xrController;
+        private UnityEngine.XR.Interaction.Toolkit.Interactors.XRDirectInteractor directInteractor;
+        private UnityEngine.XR.Interaction.Toolkit.Interactors.XRRayInteractor rayInteractor;
         
         // Hand pose data
         private Vector3 handPosition;
@@ -102,31 +101,67 @@ namespace VRMultiplayer.VR
         private void SetupXRComponents()
         {
             // Setup XR Controller
-            xrController = GetComponent<XRController>();
-            if (xrController == null)
+            // Note: ActionBasedController is deprecated in XR Interaction Toolkit 3.0+
+            // We'll use direct InputDevice polling instead
+            
+            // Check if child objects already exist (e.g., in prefab)
+            Transform directInteractorTransform = transform.Find("DirectInteractor");
+            Transform rayInteractorTransform = transform.Find("RayInteractor");
+            
+            // Create or get child GameObject for Direct Interactor
+            GameObject directInteractorGO;
+            if (directInteractorTransform != null)
             {
-                xrController = gameObject.AddComponent<XRController>();
+                directInteractorGO = directInteractorTransform.gameObject;
+            }
+            else
+            {
+                directInteractorGO = new GameObject("DirectInteractor");
+                directInteractorGO.transform.SetParent(transform);
+                directInteractorGO.transform.localPosition = Vector3.zero;
+                directInteractorGO.transform.localRotation = Quaternion.identity;
             }
             
-            // Configure controller reference
-            xrController.controllerNode = isLeftHand ? XRNode.LeftHand : XRNode.RightHand;
+            // Add sphere collider FIRST before XRDirectInteractor (required for XRDirectInteractor)
+            SphereCollider directCollider = directInteractorGO.GetComponent<SphereCollider>();
+            if (directCollider == null)
+            {
+                directCollider = directInteractorGO.AddComponent<SphereCollider>();
+                directCollider.isTrigger = true;
+                directCollider.radius = 0.1f; // Small radius for hand interaction
+                Debug.Log($"Added trigger collider to Direct Interactor for {(isLeftHand ? "left" : "right")} hand");
+            }
             
-            // Setup Direct Interactor
-            directInteractor = GetComponent<XRDirectInteractor>();
+            // Add required components for Direct Interactor AFTER collider
+            directInteractor = directInteractorGO.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.XRDirectInteractor>();
             if (directInteractor == null)
             {
-                directInteractor = gameObject.AddComponent<XRDirectInteractor>();
+                directInteractor = directInteractorGO.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.XRDirectInteractor>();
             }
             
-            // Setup Ray Interactor (for distant interactions)
-            rayInteractor = GetComponent<XRRayInteractor>();
+            // Create or get child GameObject for Ray Interactor
+            GameObject rayInteractorGO;
+            if (rayInteractorTransform != null)
+            {
+                rayInteractorGO = rayInteractorTransform.gameObject;
+            }
+            else
+            {
+                rayInteractorGO = new GameObject("RayInteractor");
+                rayInteractorGO.transform.SetParent(transform);
+                rayInteractorGO.transform.localPosition = Vector3.zero;
+                rayInteractorGO.transform.localRotation = Quaternion.identity;
+            }
+            
+            // Add Ray Interactor component
+            rayInteractor = rayInteractorGO.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.XRRayInteractor>();
             if (rayInteractor == null)
             {
-                rayInteractor = gameObject.AddComponent<XRRayInteractor>();
+                rayInteractor = rayInteractorGO.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.XRRayInteractor>();
             }
             
             // Configure ray interactor
-            rayInteractor.enabled = false; // Start with direct interaction
+            rayInteractor.enabled = false; // Start with direct interaction only
             
             // Setup interaction layers
             SetupInteractionLayers();
@@ -317,12 +352,6 @@ namespace VRMultiplayer.VR
                 
             // Reset device search
             deviceFound = false;
-            
-            // Update XR Controller
-            if (xrController != null)
-            {
-                xrController.controllerNode = isLeftHand ? XRNode.LeftHand : XRNode.RightHand;
-            }
         }
         
         public void SetInputState(bool trigger, bool grip)

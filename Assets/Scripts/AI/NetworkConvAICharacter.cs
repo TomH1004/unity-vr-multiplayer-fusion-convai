@@ -3,6 +3,11 @@ using UnityEngine;
 using VRMultiplayer.Avatar;
 using VRMultiplayer.Network;
 using System.Collections.Generic;
+using System.Collections;
+using Convai.Scripts.Runtime.Core;
+using Convai.Scripts.Runtime.Features;
+using Convai.Scripts.Runtime.UI;
+using TMPro;
 
 namespace VRMultiplayer.AI
 {
@@ -10,6 +15,8 @@ namespace VRMultiplayer.AI
     /// Networked ConvAI Character that synchronizes AI interactions across multiplayer clients
     /// Both players can interact with the same AI agent instance
     /// </summary>
+    [RequireComponent(typeof(ConvaiChatUIHandler))]
+    [RequireComponent(typeof(ConvaiGroupNPCController))]
     public class NetworkConvAICharacter : NetworkBehaviour
     {
         [Header("Character Settings")]
@@ -37,8 +44,8 @@ namespace VRMultiplayer.AI
         [Networked] public bool IsThinking { get; set; }
         [Networked] public PlayerRef CurrentSpeaker { get; set; }
         [Networked] public float TurnStartTime { get; set; }
-        [Networked] public NetworkString<512> LastResponse { get; set; }
-        [Networked] public NetworkString<256> ConversationId { get; set; }
+        [Networked] public string LastResponse { get; set; }
+        [Networked] public string ConversationId { get; set; }
         
         // Local state
         private Queue<ConversationRequest> conversationQueue = new Queue<ConversationRequest>();
@@ -78,9 +85,9 @@ namespace VRMultiplayer.AI
             FindLocalPlayer();
             
             // Initialize conversation ID
-            if (Object.HasStateAuthority && string.IsNullOrEmpty(ConversationId.ToString()))
+            if (Object.HasStateAuthority && string.IsNullOrEmpty(ConversationId))
             {
-                ConversationId = System.Guid.NewGuid().ToString("N")[..16];
+                ConversationId = System.Guid.NewGuid().ToString("N").Substring(0, 16);
             }
             
             // Setup visual indicators
@@ -113,7 +120,7 @@ namespace VRMultiplayer.AI
         public override void FixedUpdateNetwork()
         {
             // Handle turn time limits
-            if (requireTurnTaking && CurrentSpeaker.IsValid)
+            if (requireTurnTaking && CurrentSpeaker != PlayerRef.None)
             {
                 float elapsedTime = Runner.SimulationTime - TurnStartTime;
                 if (elapsedTime > turnTimeLimit)
@@ -183,7 +190,7 @@ namespace VRMultiplayer.AI
             // Look at current speaker or nearest player
             Transform targetToLookAt = null;
             
-            if (CurrentSpeaker.IsValid)
+            if (CurrentSpeaker != PlayerRef.None)
             {
                 var currentSpeakerObject = Runner.GetPlayerObject(CurrentSpeaker);
                 if (currentSpeakerObject != null)
@@ -298,7 +305,7 @@ namespace VRMultiplayer.AI
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
         private void RPC_EndVoiceInteraction()
         {
-            if (!CurrentSpeaker.IsValid)
+            if (CurrentSpeaker == PlayerRef.None)
                 return;
                 
             IsListening = false;
@@ -421,7 +428,7 @@ namespace VRMultiplayer.AI
         private bool CanPlayerStartTurn(PlayerRef player)
         {
             // Check if turn-taking is required and someone else is speaking
-            if (requireTurnTaking && CurrentSpeaker.IsValid && CurrentSpeaker != player)
+            if (requireTurnTaking && CurrentSpeaker != PlayerRef.None && CurrentSpeaker != player)
                 return false;
                 
             // Check if AI is currently processing
@@ -473,7 +480,7 @@ namespace VRMultiplayer.AI
             Gizmos.DrawWireSphere(transform.position, interactionRange);
             
             // Draw current speaker connection
-            if (Application.isPlaying && CurrentSpeaker.IsValid)
+            if (Application.isPlaying && CurrentSpeaker != PlayerRef.None)
             {
                 var speakerObject = Runner?.GetPlayerObject(CurrentSpeaker);
                 if (speakerObject != null)

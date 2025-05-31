@@ -212,11 +212,11 @@ namespace VRMultiplayer.UI
             
             if (voiceHandler.IsRecording)
             {
-                voiceHandler.EndVoiceInteraction();
+                voiceHandler.StopRecording();
             }
             else
             {
-                voiceHandler.StartVoiceInteraction();
+                voiceHandler.StartRecording();
             }
         }
         
@@ -384,7 +384,7 @@ namespace VRMultiplayer.UI
         {
             if (currentSpeakerText != null)
             {
-                currentSpeakerText.text = player.IsValid ? $"Speaking: Player {player}" : "No one speaking";
+                currentSpeakerText.text = player != Fusion.PlayerRef.None ? $"Speaking: Player {player}" : "No one speaking";
             }
         }
         

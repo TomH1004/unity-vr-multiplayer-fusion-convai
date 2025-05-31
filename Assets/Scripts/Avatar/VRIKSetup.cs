@@ -216,14 +216,11 @@ namespace VRMultiplayer.Avatar
             // Plant feet settings
             if (enablePlantFeet)
             {
-                var plantFeet = vrik.solver.plantFeet;
-                plantFeet.weight = 1f;
-                plantFeet.minWeight = 0.7f;
-                plantFeet.speed = 3f;
-                plantFeet.unplantDistance = 0.2f;
-                plantFeet.heightOffset = 0.02f;
-                plantFeet.heelOffset = 0.06f;
-                plantFeet.blendSpeed = 3f;
+                vrik.solver.plantFeet = true;
+            }
+            else
+            {
+                vrik.solver.plantFeet = false;
             }
         }
         
@@ -249,21 +246,22 @@ namespace VRMultiplayer.Avatar
             }
         }
         
-        private void CreateBendGoal(IKSolverVR.Arm armOrLeg, string name, Vector3 direction)
+        private void CreateBendGoal(object armOrLeg, string name, Vector3 direction)
         {
             var bendGoalObj = new GameObject(name);
             bendGoalObj.transform.SetParent(transform);
             
-            // Position the bend goal
-            if (armOrLeg is IKSolverVR.Leg leg && leg.target != null)
+            // Position the bend goal based on solver type
+            switch (armOrLeg)
             {
-                bendGoalObj.transform.position = leg.target.position + direction * 0.5f;
-            }
-            
-            // Assign the bend goal
-            if (armOrLeg is IKSolverVR.Leg legSolver)
-            {
-                legSolver.bendGoal = bendGoalObj.transform;
+                case IKSolverVR.Leg leg when leg.target != null:
+                    bendGoalObj.transform.position = leg.target.position + direction * 0.5f;
+                    leg.bendGoal = bendGoalObj.transform;
+                    break;
+                case IKSolverVR.Arm arm when arm.target != null:
+                    bendGoalObj.transform.position = arm.target.position + direction * 0.5f;
+                    arm.bendGoal = bendGoalObj.transform;
+                    break;
             }
         }
         
