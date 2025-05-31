@@ -80,20 +80,28 @@ namespace VRMultiplayer.Network
         
         public void OnPlayerJoinedSession(PlayerRef player)
         {
-            Debug.Log($"Player {player} joined the session");
+            Debug.Log($"[VRConnectionManager] Player {player.PlayerId} joined. Runner HasStateAuthority: {Runner.HasStateAuthority}. Attempting to spawn player object.");
             
             // Spawn player on all clients
-            if (_runner.HasStateAuthority)
+            // In Shared Mode, HasStateAuthority is true for all clients.
+            // The host (first player) or a designated master client typically handles spawning.
+            // For simplicity in shared mode, often the first client to join (or any client if logic is robust) can spawn.
+            // Let's assume for now that any client can attempt to spawn if needed, Fusion handles deduplication if multiple try.
+            // However, a more robust approach is to ensure only one client (e.g., MasterClient or Host) spawns.
+            // For this logging task, we'll keep the existing logic.
+            if (_runner.HasStateAuthority) // In Shared Mode, this is true for everyone.
             {
                 SpawnPlayer(player);
             }
+            // If not HasStateAuthority (e.g. in Host/Client mode and this is a client), wait for host to spawn.
+            // Or, if in Shared Mode and relying on one client to spawn, other clients would not enter here.
             
             OnPlayerJoined?.Invoke(player);
         }
         
         public void OnPlayerLeftSession(PlayerRef player)
         {
-            Debug.Log($"Player {player} left the session");
+            Debug.Log($"[VRConnectionManager] Player {player.PlayerId} left. Despawning their objects.");
             
             // Despawn player
             if (_players.TryGetValue(player, out NetworkObject networkObject))
@@ -104,6 +112,7 @@ namespace VRMultiplayer.Network
                 }
                 _players.Remove(player);
             }
+            Debug.Log($"[VRConnectionManager] Player {player.PlayerId} objects despawned. Player count now: {_players.Count}");
             
             OnPlayerLeft?.Invoke(player);
         }
@@ -112,24 +121,29 @@ namespace VRMultiplayer.Network
         {
             if (playerPrefab == null)
             {
-                Debug.LogError("Player prefab not assigned!");
+                Debug.LogError("[VRConnectionManager] Player prefab not assigned!");
                 return;
             }
             
             Vector3 spawnPosition = GetSpawnPosition();
+            Debug.Log($"[VRConnectionManager] Spawning player object for Player {player.PlayerId} at {spawnPosition}. Assigning input authority.");
             
             // Spawn the player
             NetworkObject networkPlayer = _runner.Spawn(
                 playerPrefab, 
                 spawnPosition, 
                 Quaternion.identity, 
-                player
+                player // Assign input authority to the joining player
             );
             
             if (networkPlayer != null)
             {
                 _players[player] = networkPlayer;
-                Debug.Log($"Spawned player {player} at position {spawnPosition}");
+                Debug.Log($"[VRConnectionManager] Successfully spawned NetworkObject for player {player.PlayerId} with ID {networkPlayer.Id}");
+            }
+            else
+            {
+                Debug.LogError($"[VRConnectionManager] Failed to spawn NetworkObject for player {player.PlayerId}");
             }
         }
         
